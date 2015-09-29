@@ -9,6 +9,7 @@ next: /extras/pagination
 prev: /extras/permalinks
 title: Shortcodes
 weight: 80
+toc: true
 ---
 
 Hugo uses Markdown for its simple content format. However, there are a lot
@@ -199,7 +200,7 @@ A shortcode with `.Inner` content can be used wihout the inline content, and wit
 
 The variable `.Params` contains the list of parameters in case you need to do more complicated things than `.Get`.
 
-You can also use the variable `.Page` to access all the normal [Page Variables](/templates/variables/). 
+You can also use the variable `.Page` to access all the normal [Page Variables](/templates/variables/).
 
 ## Single Positional Example: youtube
 

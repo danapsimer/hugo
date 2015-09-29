@@ -33,8 +33,16 @@ const RSS_TEMPLATE = `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom
 </rss>`
 
 func TestRSSOutput(t *testing.T) {
+	viper.Reset()
+	defer viper.Reset()
+
+	rssUri := "customrss.xml"
 	viper.Set("baseurl", "http://auth/bub/")
+<<<<<<< HEAD
 	viper.Set("RSSUri", "index.xml")
+=======
+	viper.Set("RSSUri", rssUri)
+>>>>>>> 7708d4556d6a829bbd2fbd487e64c069f17f4dbc
 
 	hugofs.DestinationFS = new(afero.MemMapFs)
 	s := &Site{
@@ -42,6 +50,7 @@ func TestRSSOutput(t *testing.T) {
 	}
 	s.initializeSiteInfo()
 	s.prepTemplates()
+
 	//  Add an rss.xml template to invoke the rss build.
 	s.addTemplate("rss.xml", RSS_TEMPLATE)
 
@@ -57,10 +66,10 @@ func TestRSSOutput(t *testing.T) {
 		t.Fatalf("Unable to RenderHomePage: %s", err)
 	}
 
-	file, err := hugofs.DestinationFS.Open("index.xml")
+	file, err := hugofs.DestinationFS.Open(rssUri)
 
 	if err != nil {
-		t.Fatalf("Unable to locate: %s", "index.xml")
+		t.Fatalf("Unable to locate: %s", rssUri)
 	}
 
 	rss := helpers.ReaderToBytes(file)

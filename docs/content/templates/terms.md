@@ -12,6 +12,7 @@ next: /templates/views
 prev: /templates/homepage
 title: Taxonomy Terms Template
 weight: 60
+toc: true
 ---
 
 A unique template is needed to create a list of the terms for a given
@@ -57,6 +58,8 @@ Taxonomy Terms pages will additionally have:
 * **.Data.Terms.Alphabetical** The Terms alphabetized
 * **.Data.Terms.ByCount** The Terms ordered by popularity
 
+The last two can also be reversed: **.Data.Terms.Alphabetical.Reverse**, **.Data.Terms.ByCount.Reverse**.
+
 ### Example terms.html files
 
 List pages are of the type "node" and have all the
@@ -73,7 +76,7 @@ This particular template lists all of the Tags used on
 [spf13.com](http://spf13.com/) and provides a count for the number of pieces of
 content tagged with each tag.
 
-`.Data.Terms` is an map of terms ⇒ [contents]
+`.Data.Terms` is a map of terms ⇒ [contents]
 
     {{ partial "header.html" . }}
     {{ partial "subheader.html" . }}

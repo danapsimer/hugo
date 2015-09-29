@@ -60,13 +60,15 @@ type OrderedTaxonomyEntry struct {
 
 // KeyPrep... Taxonomies should be case insensitive. Can make it easily conditional later.
 func kp(in string) string {
-	return helpers.MakePathToLower(in)
+	return helpers.MakePathSanitized(in)
 }
 
 func (i Taxonomy) Get(key string) WeightedPages { return i[kp(key)] }
 func (i Taxonomy) Count(key string) int         { return len(i[kp(key)]) }
-func (i Taxonomy) Add(key string, w WeightedPage) {
-	key = kp(key)
+func (i Taxonomy) Add(key string, w WeightedPage, pretty bool) {
+	if !pretty {
+		key = kp(key)
+	}
 	i[key] = append(i[key], w)
 }
 
@@ -114,6 +116,14 @@ func (ie OrderedTaxonomyEntry) Count() int {
 
 func (ie OrderedTaxonomyEntry) Term() string {
 	return ie.Name
+}
+
+func (t OrderedTaxonomy) Reverse() OrderedTaxonomy {
+	for i, j := 0, len(t)-1; i < j; i, j = i+1, j-1 {
+		t[i], t[j] = t[j], t[i]
+	}
+
+	return t
 }
 
 /*

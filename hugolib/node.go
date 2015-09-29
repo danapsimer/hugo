@@ -14,7 +14,6 @@
 package hugolib
 
 import (
-	"github.com/spf13/hugo/helpers"
 	"html/template"
 	"sync"
 	"time"
@@ -22,7 +21,7 @@ import (
 
 type Node struct {
 	RSSLink template.HTML
-	Site    *SiteInfo
+	Site    *SiteInfo `json:"-"`
 	//	layout      string
 	Data        map[string]interface{}
 	Title       string
@@ -30,8 +29,10 @@ type Node struct {
 	Keywords    []string
 	Params      map[string]interface{}
 	Date        time.Time
+	Lastmod     time.Time
 	Sitemap     Sitemap
 	URLPath
+	IsHome        bool
 	paginator     *Pager
 	paginatorInit sync.Once
 	scratch       *Scratch
@@ -49,6 +50,9 @@ func (n *Node) HasMenuCurrent(menuID string, inme *MenuEntry) bool {
 			if me.IsSameResource(child) {
 				return true
 			}
+			if n.HasMenuCurrent(menuID, child) {
+				return true
+			}
 		}
 	}
 
@@ -57,7 +61,8 @@ func (n *Node) HasMenuCurrent(menuID string, inme *MenuEntry) bool {
 
 func (n *Node) IsMenuCurrent(menuID string, inme *MenuEntry) bool {
 
-	me := MenuEntry{Name: n.Title, URL: n.URL}
+	me := MenuEntry{Name: n.Title, URL: n.Site.createNodeMenuEntryURL(n.URL)}
+
 	if !me.IsSameResource(inme) {
 		return false
 	}
@@ -125,24 +130,6 @@ type URLPath struct {
 	Permalink template.HTML
 	Slug      string
 	Section   string
-}
-
-// Url is deprecated. Will be removed in 0.15.
-func (n *Node) Url() string {
-	helpers.Deprecated("Node", ".Url", ".URL")
-	return n.URL
-}
-
-// UrlPath is deprecated. Will be removed in 0.15.
-func (n *Node) UrlPath() URLPath {
-	helpers.Deprecated("Node", ".UrlPath", ".URLPath")
-	return n.URLPath
-}
-
-// Url is deprecated. Will be removed in 0.15.
-func (up URLPath) Url() string {
-	helpers.Deprecated("URLPath", ".Url", ".URL")
-	return up.URL
 }
 
 // Scratch returns the writable context associated with this Node.
