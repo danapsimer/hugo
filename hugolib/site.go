@@ -1337,7 +1337,11 @@ func (s *Site) Stats() {
 func (s *Site) setURLs(n *Node, in string) {
 	n.URL = helpers.URLizeAndPrep(in)
 	n.Permalink = s.permalink(n.URL)
-	n.RSSLink = s.permalink(in + ".xml")
+	if in == "/" {
+		n.RSSLink = s.permalink(viper.GetString("RSSUri"))
+	} else {
+		n.RSSLink = s.permalink(in + ".xml")
+	}
 }
 
 func (s *Site) permalink(plink string) template.HTML {

@@ -903,3 +903,29 @@ func TestWeightedTaxonomies(t *testing.T) {
 		t.Errorf("Pages in unexpected order, 'bza' expected first, got '%v'", s.Taxonomies["categories"]["e"][0].Page.Title)
 	}
 }
+
+func TestHomeNodeSetURLs(t *testing.T) {
+	s := &Site{}
+	taxonomies := make(map[string]string)
+
+	taxonomies["tag"] = "tags"
+	taxonomies["category"] = "categories"
+	viper.Set("baseurl", "http://auth/bub")
+	viper.Set("taxonomies", taxonomies)
+	viper.Set("RSSUri", "rss.xml")
+
+	s.initializeSiteInfo()
+	node := s.NewNode()
+	s.setURLs(node, "/")
+
+	t.Logf("node{ url = %s, permlink = %s, rsslink = %s }", node.URL, node.Permalink, node.RSSLink)
+	if node.URL != "/" {
+		t.Errorf("URL should be '/' but found %s", node.URL)
+	}
+	if node.Permalink != "http://auth/bub/" {
+		t.Errorf("Permalink should be 'http://auth/bub/' but found %s", node.Permalink)
+	}
+	if node.RSSLink != "/rss.xml" {
+		t.Errorf("RSSLink should be '/rss.xml' but found %s", node.RSSLink)
+	}
+}
