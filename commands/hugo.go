@@ -17,6 +17,8 @@ package commands
 
 import (
 	"fmt"
+	"github.com/spf13/hugo/parser"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -42,11 +44,13 @@ import (
 //HugoCmd is Hugo's root command. Every other command attached to HugoCmd is a child command to it.
 var HugoCmd = &cobra.Command{
 	Use:   "hugo",
-	Short: "Hugo is a very fast static site generator",
-	Long: `A Fast and Flexible Static Site Generator built with
-love by spf13 and friends in Go.
+	Short: "hugo builds your site",
+	Long: `hugo is the main command, used to build your Hugo site.
 
-Complete documentation is available at http://gohugo.io`,
+Hugo is a Fast and Flexible Static Site Generator
+built with love by spf13 and friends in Go.
+
+Complete documentation is available at http://gohugo.io/.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		InitializeConfig()
 		build()
@@ -56,11 +60,12 @@ Complete documentation is available at http://gohugo.io`,
 var hugoCmdV *cobra.Command
 
 //Flags that are to be added to commands.
-var BuildWatch, IgnoreCache, Draft, Future, UglyURLs, Verbose, Logging, VerboseLog, DisableRSS, DisableSitemap, PluralizeListTitles, NoTimes bool
+var BuildWatch, IgnoreCache, Draft, Future, UglyURLs, Verbose, Logging, VerboseLog, DisableRSS, DisableSitemap, PluralizeListTitles, PreserveTaxonomyNames, NoTimes bool
 var Source, CacheDir, Destination, Theme, BaseURL, CfgFile, LogFile, Editor string
 
 //Execute adds all child commands to the root command HugoCmd and sets flags appropriately.
 func Execute() {
+	HugoCmd.SetGlobalNormalizationFunc(helpers.NormalizeHugoFlagsFunc)
 	AddCommands()
 	utils.StopOnErr(HugoCmd.Execute())
 }
@@ -75,12 +80,15 @@ func AddCommands() {
 	HugoCmd.AddCommand(convertCmd)
 	HugoCmd.AddCommand(newCmd)
 	HugoCmd.AddCommand(listCmd)
+	HugoCmd.AddCommand(undraftCmd)
+	HugoCmd.AddCommand(genautocompleteCmd)
+	HugoCmd.AddCommand(gendocCmd)
 }
 
 //Initializes flags
 func init() {
 	HugoCmd.PersistentFlags().BoolVarP(&Draft, "buildDrafts", "D", false, "include content marked as draft")
-	HugoCmd.PersistentFlags().BoolVarP(&Future, "buildFuture", "F", false, "include content with datePublished in the future")
+	HugoCmd.PersistentFlags().BoolVarP(&Future, "buildFuture", "F", false, "include content with publishdate in the future")
 	HugoCmd.PersistentFlags().BoolVar(&DisableRSS, "disableRSS", false, "Do not build RSS files")
 	HugoCmd.PersistentFlags().BoolVar(&DisableSitemap, "disableSitemap", false, "Do not build Sitemap file")
 	HugoCmd.PersistentFlags().StringVarP(&Source, "source", "s", "", "filesystem path to read files relative from")
@@ -89,8 +97,8 @@ func init() {
 	HugoCmd.PersistentFlags().StringVarP(&Destination, "destination", "d", "", "filesystem path to write files to")
 	HugoCmd.PersistentFlags().StringVarP(&Theme, "theme", "t", "", "theme to use (located in /themes/THEMENAME/)")
 	HugoCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
-	HugoCmd.PersistentFlags().BoolVar(&UglyURLs, "uglyUrls", false, "if true, use /filename.html instead of /filename/")
-	HugoCmd.PersistentFlags().StringVarP(&BaseURL, "baseUrl", "b", "", "hostname (and path) to the root eg. http://spf13.com/")
+	HugoCmd.PersistentFlags().BoolVar(&UglyURLs, "uglyURLs", false, "if true, use /filename.html instead of /filename/")
+	HugoCmd.PersistentFlags().StringVarP(&BaseURL, "baseURL", "b", "", "hostname (and path) to the root, e.g. http://spf13.com/")
 	HugoCmd.PersistentFlags().StringVar(&CfgFile, "config", "", "config file (default is path/config.yaml|json|toml)")
 	HugoCmd.PersistentFlags().StringVar(&Editor, "editor", "", "edit new content with this editor, if provided")
 	HugoCmd.PersistentFlags().BoolVar(&Logging, "log", false, "Enable Logging")
@@ -98,29 +106,26 @@ func init() {
 	HugoCmd.PersistentFlags().BoolVar(&VerboseLog, "verboseLog", false, "verbose logging")
 	HugoCmd.PersistentFlags().BoolVar(&nitro.AnalysisOn, "stepAnalysis", false, "display memory and timing of different steps of the program")
 	HugoCmd.PersistentFlags().BoolVar(&PluralizeListTitles, "pluralizeListTitles", true, "Pluralize titles in lists using inflect")
+	HugoCmd.PersistentFlags().BoolVar(&PreserveTaxonomyNames, "preserveTaxonomyNames", false, `Preserve taxonomy names as written ("Gérard Depardieu" vs "gerard-depardieu")`)
+
 	HugoCmd.Flags().BoolVarP(&BuildWatch, "watch", "w", false, "watch filesystem for changes and recreate as needed")
 	HugoCmd.Flags().BoolVarP(&NoTimes, "noTimes", "", false, "Don't sync modification time of files")
 	hugoCmdV = HugoCmd
 
+	// for Bash autocomplete
+	validConfigFilenames := []string{"json", "js", "yaml", "yml", "toml", "tml"}
+	HugoCmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, validConfigFilenames)
+	HugoCmd.PersistentFlags().SetAnnotation("theme", cobra.BashCompSubdirsInDir, []string{"themes"})
+
 	// This message will be shown to Windows users if Hugo is opened from explorer.exe
 	cobra.MousetrapHelpText = `
-	
+
   Hugo is a command line tool
 
   You need to open cmd.exe and run it from there.`
 }
 
-// InitializeConfig initializes a config file with sensible default configuration flags.
-func InitializeConfig() {
-	viper.SetConfigFile(CfgFile)
-	viper.AddConfigPath(Source)
-	err := viper.ReadInConfig()
-	if err != nil {
-		jww.ERROR.Println("Unable to locate Config file. Perhaps you need to create a new site. Run `hugo help new` for details")
-	}
-
-	viper.RegisterAlias("indexes", "taxonomies")
-
+func LoadDefaultSettings() {
 	viper.SetDefault("Watch", false)
 	viper.SetDefault("MetaDataFormat", "toml")
 	viper.SetDefault("DisableRSS", false)
@@ -138,14 +143,18 @@ func InitializeConfig() {
 	viper.SetDefault("Verbose", false)
 	viper.SetDefault("IgnoreCache", false)
 	viper.SetDefault("CanonifyURLs", false)
+	viper.SetDefault("RelativeURLs", false)
+	viper.SetDefault("RemovePathAccents", false)
 	viper.SetDefault("Taxonomies", map[string]string{"tag": "tags", "category": "categories"})
 	viper.SetDefault("Permalinks", make(hugolib.PermalinkOverrides, 0))
 	viper.SetDefault("Sitemap", hugolib.Sitemap{Priority: -1})
 	viper.SetDefault("PygmentsStyle", "monokai")
 	viper.SetDefault("DefaultExtension", "html")
 	viper.SetDefault("PygmentsUseClasses", false)
+	viper.SetDefault("PygmentsCodeFences", false)
 	viper.SetDefault("DisableLiveReload", false)
 	viper.SetDefault("PluralizeListTitles", true)
+	viper.SetDefault("PreserveTaxonomyNames", false)
 	viper.SetDefault("FootnoteAnchorPrefix", "")
 	viper.SetDefault("FootnoteReturnLinkContents", "")
 	viper.SetDefault("NewContentEditor", "")
@@ -153,6 +162,27 @@ func InitializeConfig() {
 	viper.SetDefault("PaginatePath", "page")
 	viper.SetDefault("Blackfriday", helpers.NewBlackfriday())
 	viper.SetDefault("RSSUri", "index.xml")
+	viper.SetDefault("SectionPagesMenu", "")
+	viper.SetDefault("DisablePathToLower", false)
+}
+
+// InitializeConfig initializes a config file with sensible default configuration flags.
+func InitializeConfig() {
+	viper.SetConfigFile(CfgFile)
+	// See https://github.com/spf13/viper/issues/73#issuecomment-126970794
+	if Source == "" {
+		viper.AddConfigPath(".")
+	} else {
+		viper.AddConfigPath(Source)
+	}
+	err := viper.ReadInConfig()
+	if err != nil {
+		jww.ERROR.Println("Unable to locate Config file. Perhaps you need to create a new site. Run `hugo help new` for details")
+	}
+
+	viper.RegisterAlias("indexes", "taxonomies")
+
+	LoadDefaultSettings()
 
 	if hugoCmdV.PersistentFlags().Lookup("buildDrafts").Changed {
 		viper.Set("BuildDrafts", Draft)
@@ -162,7 +192,7 @@ func InitializeConfig() {
 		viper.Set("BuildFuture", Future)
 	}
 
-	if hugoCmdV.PersistentFlags().Lookup("uglyUrls").Changed {
+	if hugoCmdV.PersistentFlags().Lookup("uglyURLs").Changed {
 		viper.Set("UglyURLs", UglyURLs)
 	}
 
@@ -182,6 +212,10 @@ func InitializeConfig() {
 		viper.Set("PluralizeListTitles", PluralizeListTitles)
 	}
 
+	if hugoCmdV.PersistentFlags().Lookup("preserveTaxonomyNames").Changed {
+		viper.Set("PreserveTaxonomyNames", PreserveTaxonomyNames)
+	}
+
 	if hugoCmdV.PersistentFlags().Lookup("editor").Changed {
 		viper.Set("NewContentEditor", Editor)
 	}
@@ -196,7 +230,7 @@ func InitializeConfig() {
 		viper.Set("BaseURL", BaseURL)
 	}
 
-	if viper.GetString("BaseURL") == "" {
+	if !viper.GetBool("RelativeURLs") && viper.GetString("BaseURL") == "" {
 		jww.ERROR.Println("No 'baseurl' set in configuration or as a flag. Features like page menus will not work without one.")
 	}
 
@@ -252,6 +286,20 @@ func InitializeConfig() {
 	}
 
 	jww.INFO.Println("Using config file:", viper.ConfigFileUsed())
+
+	themeDir := helpers.GetThemeDir()
+	if themeDir != "" {
+		if _, err := os.Stat(themeDir); os.IsNotExist(err) {
+			jww.FATAL.Fatalln("Unable to find theme Directory:", themeDir)
+		}
+	}
+
+	themeVersionMismatch, minVersion := isThemeVsHugoVersionMismatch()
+
+	if themeVersionMismatch {
+		jww.ERROR.Printf("Current theme does not support Hugo version %s. Minimum version required is %s\n",
+			helpers.HugoReleaseVersion(), minVersion)
+	}
 }
 
 func build(watches ...bool) {
@@ -304,10 +352,16 @@ func copyStatic() error {
 func getDirList() []string {
 	var a []string
 	dataDir := helpers.AbsPathify(viper.GetString("DataDir"))
+	layoutDir := helpers.AbsPathify(viper.GetString("LayoutDir"))
 	walker := func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			if path == dataDir && os.IsNotExist(err) {
 				jww.WARN.Println("Skip DataDir:", err)
+				return nil
+
+			}
+			if path == layoutDir && os.IsNotExist(err) {
+				jww.WARN.Println("Skip LayoutDir:", err)
 				return nil
 
 			}
@@ -414,7 +468,7 @@ func NewWatcher(port int) error {
 						continue
 					}
 
-					isstatic := strings.HasPrefix(ev.Name, helpers.GetStaticDirPath()) || strings.HasPrefix(ev.Name, helpers.GetThemesDirPath())
+					isstatic := strings.HasPrefix(ev.Name, helpers.GetStaticDirPath()) || (len(helpers.GetThemesDirPath()) > 0 && strings.HasPrefix(ev.Name, helpers.GetThemesDirPath()))
 					staticChanged = staticChanged || isstatic
 					dynamicChanged = dynamicChanged || !isstatic
 
@@ -482,4 +536,58 @@ func NewWatcher(port int) error {
 
 	wg.Wait()
 	return nil
+}
+
+// isThemeVsHugoVersionMismatch returns whether the current Hugo version is < theme's min_version
+func isThemeVsHugoVersionMismatch() (mismatch bool, requiredMinVersion string) {
+	if !helpers.ThemeSet() {
+		return
+	}
+
+	themeDir := helpers.GetThemeDir()
+
+	fs := hugofs.SourceFs
+	path := filepath.Join(themeDir, "theme.toml")
+
+	exists, err := helpers.Exists(path, fs)
+
+	if err != nil || !exists {
+		return
+	}
+
+	f, err := fs.Open(path)
+
+	if err != nil {
+		return
+	}
+
+	defer f.Close()
+
+	b, err := ioutil.ReadAll(f)
+
+	if err != nil {
+		return
+	}
+
+	c, err := parser.HandleTOMLMetaData(b)
+
+	if err != nil {
+		return
+	}
+
+	config := c.(map[string]interface{})
+
+	if minVersion, ok := config["min_version"]; ok {
+		switch minVersion.(type) {
+		case float32:
+			return helpers.HugoVersionNumber < minVersion.(float32), fmt.Sprint(minVersion)
+		case float64:
+			return helpers.HugoVersionNumber < minVersion.(float64), fmt.Sprint(minVersion)
+		default:
+			return
+		}
+
+	}
+
+	return
 }

@@ -18,23 +18,23 @@ import (
 )
 
 // this should be the only one
-const hugoVersionMain = 0.14
-const hugoVersionSuffix = "-DEV" // blank this when doing a release
+const HugoVersionNumber = 0.15
+const HugoVersionSuffix = "-DEV" // blank this when doing a release
 
 // HugoVersion returns the current Hugo version. It will include
 // a suffix, typically '-DEV', if it's development version.
 func HugoVersion() string {
-	return hugoVersion(hugoVersionMain, hugoVersionSuffix)
+	return hugoVersion(HugoVersionNumber, HugoVersionSuffix)
 }
 
 // HugoReleaseVersion is same as HugoVersion, but no suffix.
 func HugoReleaseVersion() string {
-	return hugoVersionNoSuffix(hugoVersionMain)
+	return hugoVersionNoSuffix(HugoVersionNumber)
 }
 
 // NextHugoReleaseVersion returns the next Hugo release version.
 func NextHugoReleaseVersion() string {
-	return hugoVersionNoSuffix(hugoVersionMain + 0.01)
+	return hugoVersionNoSuffix(HugoVersionNumber + 0.01)
 }
 
 func hugoVersion(version float32, suffix string) string {

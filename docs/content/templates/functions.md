@@ -3,6 +3,7 @@ aliases:
 - /layout/functions/
 date: 2013-07-01
 linktitle: Functions
+toc: true
 menu:
   main:
     parent: layout
@@ -51,13 +52,13 @@ e.g.
 
 
 ### echoParam
-If parameter is set, then echo it.
+Prints a parameter if it is set.
 
-e.g. `{{echoParam .Params "project_url" }}`
+e.g. `{{ echoParam .Params "project_url" }}`
 
 
 ### eq
-Return true if the parameters are equal.
+Returns true if the parameters are equal.
 
 e.g.
 
@@ -65,7 +66,7 @@ e.g.
 
 
 ### first
-Slices an array to only the first X elements.
+Slices an array to only the first _N_ elements.
 
 Works on [lists](/templates/list/), [taxonomies](/taxonomies/displaying/), [terms](/templates/terms/), [groups](/templates/list/)
 
@@ -75,6 +76,28 @@ e.g.
         {{ .Render "summary" }}
     {{ end }}
 
+### last
+Slices an array to only the last _N_ elements.
+
+Works on [lists](/templates/list/), [taxonomies](/taxonomies/displaying/), [terms](/templates/terms/), [groups](/templates/list/)
+
+e.g.
+
+    {{ range last 10 .Data.Pages }}
+        {{ .Render "summary" }}
+    {{ end }}
+
+### after
+Slices an array to only the items after the <em>N</em>th item. Use this in combination
+with `first` to use both halves of an array split at item _N_.
+
+Works on [lists](/templates/list/), [taxonomies](/taxonomies/displaying/), [terms](/templates/terms/), [groups](/templates/list/)
+
+e.g.
+
+    {{ range after 10 .Data.Pages }}
+        {{ .Render "title" }}
+    {{ end }}
 
 ### getenv
 Returns the value of an environment variable.
@@ -90,7 +113,9 @@ e.g.
 
 
 ### in
-Checks if an element is in an array (or slice) and returns a boolean.  The elements supported are strings, integers and floats (only float64 will match as expected).  In addition, it can also check if a substring exists in a string.
+Checks if an element is in an array (or slice) and returns a boolean.
+The elements supported are strings, integers and floats (only float64 will match as expected).
+In addition, it can also check if a substring exists in a string.
 
 e.g.
 
@@ -102,9 +127,11 @@ or
 
 
 ### intersect
-Given two arrays (or slices), this function will return the common elements in the arrays.  The elements supported are strings, integers and floats (only float64).
+Given two arrays (or slices), this function will return the common elements in the arrays.
+The elements supported are strings, integers and floats (only float64).
 
-A useful example of this functionality is a 'similar posts' block.  Create a list of links to posts where any of the tags in the current post match any tags in other posts.
+A useful example of this functionality is a 'similar posts' block.
+Create a list of links to posts where any of the tags in the current post match any tags in other posts.
 
 e.g.
 
@@ -122,14 +149,28 @@ e.g.
 
 
 ### isset
-Return true if the parameter is set.
+Returns true if the parameter is set.
 Takes either a slice, array or channel and an index or a map and a key as input.
 
 e.g. `{{ if isset .Params "project_url" }} {{ index .Params "project_url" }}{{ end }}`
 
+### seq
+
+Creates a sequence of integers. It's named and used as GNU's seq.
+
+Some examples:
+
+* `3` => `1, 2, 3`
+* `1 2 4` => `1, 3`
+* `-3` => `-1, -2, -3`
+* `1 4` => `1, 2, 3, 4`
+* `1 -2` => `1, 0, -1, -2`
 
 ### sort
-Sorts maps, arrays and slices, returning a sorted slice. A sorted array of map values will be returned, with the keys eliminated. There are two optional arguments, which are `sortByField` and `sortAsc`. If left blank, sort will sort by keys (for maps) in ascending order.
+Sorts maps, arrays and slices, returning a sorted slice.
+A sorted array of map values will be returned, with the keys eliminated.
+There are two optional arguments, which are `sortByField` and `sortAsc`.
+If left blank, sort will sort by keys (for maps) in ascending order.
 
 Works on [lists](/templates/list/), [taxonomies](/taxonomies/displaying/), [terms](/templates/terms/), [groups](/templates/list/)
 
@@ -224,6 +265,22 @@ Following operators are now available
        {{ .Content }}
     {{ end }}
 
+### Unset field
+Filter only work for set fields. To check whether a field is set or exist, use operand `nil`.
+
+This can be useful to filter a small amount of pages from a large pool. Instead of set field on all pages, you can set field on required pages only.
+
+Only following operators are available for `nil`
+
+- `=`, `==`, `eq`: True if the given field is not set.
+- `!=`, `<>`, `ne`: True if the given field is set.
+
+e.g.
+
+    {{ range where .Data.Pages ".Params.specialpost" "!=" nil }}
+       {{ .Content }}
+    {{ end }}
+
 
 ## Math
 
@@ -286,36 +343,36 @@ e.g., `{{chomp "<p>Blockhead</p>\n"` → `"<p>Blockhead</p>"`
 
 
 ### dateFormat
-Converts the textual representation of the datetime into the other form or returns it of Go `time.Time` type value. These are formatted with the layout string.
+Converts the textual representation of the datetime into the other form or returns it of Go `time.Time` type value.
+These are formatted with the layout string.
 
 e.g. `{{ dateFormat "Monday, Jan 2, 2006" "2015-01-21" }}` →"Wednesday, Jan 21, 2015"
 
 
 ### highlight
-Take a string of code and a language, uses Pygments to return the syntax highlighted code in HTML. Used in the [highlight shortcode](/extras/highlighting/).
+Takes a string of code and a language, uses Pygments to return the syntax highlighted code in HTML.
+Used in the [highlight shortcode](/extras/highlighting/).
 
 
 ### lower
-Convert all characters in string to lowercase.
+Converts all characters in string to lowercase.
 
 e.g. `{{lower "BatMan"}}` → "batman"
 
 
 ### markdownify
 
-This will run the string through the Markdown processesor. The result will be declared as "safe" so Go templates will not filter it.
+Runs the string through the Markdown processesor. The result will be declared as "safe" so Go templates will not filter it.
 
 e.g. `{{ .Title | markdownify }}`
 
+### pluralize
+Pluralize the given word with a set of common English pluralization rules.
 
-### ref, relref
-Looks up a content page by relative path or logical name to return the permalink (`ref`) or relative permalink (`relref`). Requires a Node or Page object (usually satisfied with `.`). Used in the [`ref` and `relref` shortcodes]({{% ref "extras/crossreferences.md" %}}).
-
-e.g. {{ ref . "about.md" }}
-
+e.g. `{{ "cat" | pluralize }}` → "cats"
 
 ### replace
-Replace all occurences of the search string with the replacement string.
+Replaces all occurrences of the search string with the replacement string.
 
 e.g. `{{ replace "Batman and Robin" "Robin" "Catwoman" }}` → "Batman and Catwoman"
 
@@ -376,6 +433,96 @@ Example: Given `style = "color: red;"` defined in the front matter of your `.md`
 Note: "ZgotmplZ" is a special value that indicates that unsafe content reached a
 CSS or URL context.
 
+### singularize
+Singularize the given word with a set of common English singularization rules.
+
+e.g. `{{ "cats" | singularize }}` → "cat"
+
+### slicestr
+
+Slicing in `slicestr` is done by specifying a half-open range with two indices, `start` and `end`.
+For example, 1 and 4 creates a slice including elements 1 through 3.
+The `end` index can be omitted; it defaults to the string's length.
+
+e.g.
+
+* `{{slicestr "BatMan" 3}}` → "Man"
+* `{{slicestr "BatMan" 0 3}}` → "Bat"
+
+### substr
+
+Extracts parts of a string, beginning at the character at the specified
+position, and returns the specified number of characters.
+
+It normally takes two parameters: `start` and `length`.
+It can also take one parameter: `start`, i.e. `length` is omitted, in which case
+the substring starting from start until the end of the string will be returned.
+
+To extract characters from the end of the string, use a negative start number.
+
+In addition, borrowing from the extended behavior described at http://php.net/substr,
+if `length` is given and is negative, then that many characters will be omitted from
+the end of string.
+
+e.g.
+
+* `{{substr "BatMan" 0 -3}}` → "Bat"
+* `{{substr "BatMan" 3 3}}` → "Man"
+
+### title
+Converts all characters in string to titlecase.
+
+e.g. `{{title "BatMan"}}` → "Batman"
+
+
+### trim
+Returns a slice of the string with all leading and trailing characters contained in cutset removed.
+
+e.g. `{{ trim "++Batman--" "+-" }}` → "Batman"
+
+
+### upper
+Converts all characters in string to uppercase.
+
+e.g. `{{upper "BatMan"}}` → "BATMAN"
+
+
+
+
+## URLs
+
+### absURL, relURL
+
+Both `absURL` and `relURL` considers the configured value of `baseURL`, so given a `baseURL` set to `http://mysite.com/hugo/`:
+
+* `{{ "mystyle.css" | absURL }}` → "http://mysite.com/hugo/mystyle.css"
+* `{{ "mystyle.css" | relURL }}` → "/hugo/mystyle.css"
+* `{{ "http://gohugo.io/" | relURL }}` →  "http://gohugo.io/"
+* `{{ "http://gohugo.io/" | absURL }}` →  "http://gohugo.io/"
+
+The last two examples may look funky, but is useful if you, say, have a list of images, some of them hosted externally, some locally:
+
+```
+<script type="application/ld+json">
+{
+    "@context" : "http://schema.org",
+    "@type" : "BlogPosting",
+    "image" : {{ apply .Params.images "absURL" "." }}
+}
+</script>
+```
+
+The above also exploits the fact that the Go template parser JSON-encodes objects inside `script` tags.
+
+
+
+**Note:** These functions are smart about missing slashes, but will not add one to the end if not present.
+
+
+### ref, relref
+Looks up a content page by relative path or logical name to return the permalink (`ref`) or relative permalink (`relref`). Requires a Node or Page object (usually satisfied with `.`). Used in the [`ref` and `relref` shortcodes]({{% ref "extras/crossreferences.md" %}}).
+
+e.g. {{ ref . "about.md" }}
 
 ### safeURL
 Declares the provided string as a "safe" URL or URL substring (see [RFC 3986][]).
@@ -416,28 +563,26 @@ With this change, we finally get `<li><a href="irc://irc.freenode.net/#golang">I
 as intended.
 
 
-### title
-Convert all characters in string to titlecase.
-
-e.g. `{{title "BatMan"}}` → "Batman"
-
-
-### trim
-Trim returns a slice of the string with all leading and trailing characters contained in cutset removed.
-
-e.g. `{{ trim "++Batman--" "+-" }}` → "Batman"
-
-
-### upper
-Convert all characters in string to uppercase.
-
-e.g. `{{upper "BatMan"}}` → "BATMAN"
-
-
 ### urlize
 Takes a string and sanitizes it for usage in URLs, converts spaces to "-".
 
 e.g. `<a href="/tags/{{ . | urlize }}">{{ . }}</a>`
+
+
+
+## Content Views
+
+### Render
+Takes a view to render the content with.  The view is an alternate layout, and should be a file name that points to a template in one of the locations specified in the documentation for [Content Views](/templates/views).
+
+This function is only available on a piece of content, and in list context.
+
+This example could render a piece of content using the content view located at `/layouts/_default/summary.html`:
+
+    {{ range .Data.Pages }}
+        {{ .Render "summary"}}
+    {{ end }}
+
 
 
 ## Advanced
@@ -505,3 +650,33 @@ In this version, we are now sorting the tags, converting them to links with "pos
     {{ end }}
 
 `apply` does not work when receiving the sequence as an argument through a pipeline.
+
+***
+
+### base64Encode and base64Decode
+
+`base64Encode` and `base64Decode` let you easily decode content with a base64 enconding and vice versa through pipes. Let's take a look at an example:
+
+
+    {{ "Hello world" | base64Encode }}
+    <!-- will output "SGVsbG8gd29ybGQ=" and -->
+
+    {{ "SGVsbG8gd29ybGQ=" | base64Decode }}
+    <!-- becomes "Hello world" again. -->
+
+You can also pass other datatypes as argument to the template function which tries
+to convert them. Now we use an integer instead of a string:
+
+
+    {{ 42 | base64Encode | base64Decode }}
+    <!-- will output "42". Both functions always return a string. -->
+
+**Tip:** Using base64 to decode and encode becomes really powerful if we have to handle
+responses of APIs.
+
+    {{ $resp := getJSON "https://api.github.com/repos/spf13/hugo/readme"  }}
+    {{ $resp.content | base64Decode | markdownify }}
+
+ The response of the Github API contains the base64-encoded version of the [README.md](https://github.com/spf13/hugo/blob/master/README.md) in the Hugo repository.
+Now we can decode it and parse the Markdown. The final output will look similar to the
+rendered version in Github.

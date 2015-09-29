@@ -48,9 +48,11 @@ var newCmd = &cobra.Command{
 	Short: "Create new content for your site",
 	Long: `Create a new content file and automatically set the date and title.
 It will guess which kind of file to create based on the path provided.
-You can also specify the kind with -k KIND
-If archetypes are provided in your theme or site, they will be used.
-`,
+
+You can also specify the kind with ` + "`-k KIND`" + `.
+
+If archetypes are provided in your theme or site, they will be used.`,
+
 	Run: NewContent,
 }
 
@@ -59,8 +61,7 @@ var newSiteCmd = &cobra.Command{
 	Short: "Create a new site (skeleton)",
 	Long: `Create a new site in the provided directory.
 The new site will have the correct structure, but no content or theme yet.
-Use 'hugo new [contentPath]' to create new content.
-	`,
+Use ` + "`hugo new [contentPath]`" + ` to create new content.`,
 	Run: NewSite,
 }
 
@@ -70,8 +71,7 @@ var newThemeCmd = &cobra.Command{
 	Long: `Create a new theme (skeleton) called [name] in the current directory.
 New theme is a skeleton. Please add content to the touched files. Add your
 name to the copyright line in the license and adjust the theme.toml file
-as you see fit.
-	`,
+as you see fit.`,
 	Run: NewTheme,
 }
 
@@ -92,10 +92,7 @@ func NewContent(cmd *cobra.Command, args []string) {
 
 	var kind string
 
-	// assume the first directory is the section (kind)
-	if strings.Contains(createpath[1:], helpers.FilePathSeparator) {
-		kind = helpers.GuessSection(createpath)
-	}
+	createpath, kind = newContentPathSection(createpath)
 
 	if contentType != "" {
 		kind = contentType
@@ -158,6 +155,7 @@ func NewTheme(cmd *cobra.Command, args []string) {
 	mkdir(createpath, "layouts", "partials")
 
 	touchFile(createpath, "layouts", "index.html")
+	touchFile(createpath, "layouts", "404.html")
 	touchFile(createpath, "layouts", "_default", "list.html")
 	touchFile(createpath, "layouts", "_default", "single.html")
 
@@ -230,7 +228,7 @@ description = ""
 homepage = "http://siteforthistheme.com/"
 tags = ["", ""]
 features = ["", ""]
-min_version = 0.13
+min_version = 0.14
 
 [author]
   name = ""
@@ -251,9 +249,22 @@ min_version = 0.13
 	return nil
 }
 
+func newContentPathSection(path string) (string, string) {
+	// Forward slashes is used in all examples. Convert if needed.
+	// Issue #1133
+	createpath := strings.Replace(path, "/", helpers.FilePathSeparator, -1)
+	var section string
+	// assume the first directory is the section (kind)
+	if strings.Contains(createpath[1:], helpers.FilePathSeparator) {
+		section = helpers.GuessSection(createpath)
+	}
+
+	return createpath, section
+}
+
 func createConfig(inpath string, kind string) (err error) {
 	in := map[string]string{
-		"baseurl":      "http://yourSiteHere/",
+		"baseurl":      "http://replace-this-with-your-hugo-site.com/",
 		"title":        "My New Hugo Site",
 		"languageCode": "en-us",
 	}

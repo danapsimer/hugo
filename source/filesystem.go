@@ -14,11 +14,11 @@
 package source
 
 import (
-	"bytes"
+	"github.com/spf13/viper"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/spf13/hugo/helpers"
@@ -112,11 +112,11 @@ func (f *Filesystem) captureFiles() {
 		if isNonProcessablePath(filePath) {
 			return nil
 		}
-		data, err := ioutil.ReadFile(filePath)
+		rd, err := NewLazyFileReader(filePath)
 		if err != nil {
 			return err
 		}
-		f.add(filePath, bytes.NewBuffer(data))
+		f.add(filePath, rd)
 		return nil
 	}
 
@@ -146,5 +146,17 @@ func isNonProcessablePath(filePath string) bool {
 		return true
 	}
 
+	ignoreFiles := viper.GetStringSlice("IgnoreFiles")
+	if len(ignoreFiles) > 0 {
+		for _, ignorePattern := range ignoreFiles {
+			match, err := regexp.MatchString(ignorePattern, filePath)
+			if err != nil {
+				helpers.DistinctErrorLog.Printf("Invalid regexp '%s' in ignoreFiles: %s", ignorePattern, err)
+				return false
+			} else if match {
+				return true
+			}
+		}
+	}
 	return false
 }
