@@ -93,30 +93,6 @@ type targetList struct {
 }
 
 type SiteInfo struct {
-<<<<<<< HEAD
-	BaseURL             template.URL
-	Taxonomies          TaxonomyList
-	Authors             AuthorList
-	Social              SiteSocial
-	Sections            Taxonomy
-	Pages               *Pages
-	Files               []*source.File
-	Menus               *Menus
-	Hugo                *HugoInfo
-	Title               string
-	Author              map[string]interface{}
-	LanguageCode        string
-	DisqusShortname     string
-	Copyright           string
-	LastChange          time.Time
-	Permalinks          PermalinkOverrides
-	Params              map[string]interface{}
-	BuildDrafts         bool
-	canonifyURLs        bool
-	paginationPageCount uint64
-	Data                *map[string]interface{}
-	RSSUri              string
-=======
 	BaseURL               template.URL
 	Taxonomies            TaxonomyList
 	Authors               AuthorList
@@ -139,7 +115,7 @@ type SiteInfo struct {
 	preserveTaxonomyNames bool
 	paginationPageCount   uint64
 	Data                  *map[string]interface{}
->>>>>>> 7708d4556d6a829bbd2fbd487e64c069f17f4dbc
+	RSSUri                string
 }
 
 // SiteSocial is a place to put social details on a site level. These are the
@@ -474,22 +450,6 @@ func (s *Site) initializeSiteInfo() {
 	}
 
 	s.Info = SiteInfo{
-<<<<<<< HEAD
-		BaseURL:         template.URL(helpers.SanitizeURLKeepTrailingSlash(viper.GetString("BaseURL"))),
-		Title:           viper.GetString("Title"),
-		Author:          viper.GetStringMap("author"),
-		LanguageCode:    viper.GetString("languagecode"),
-		Copyright:       viper.GetString("copyright"),
-		DisqusShortname: viper.GetString("DisqusShortname"),
-		BuildDrafts:     viper.GetBool("BuildDrafts"),
-		canonifyURLs:    viper.GetBool("CanonifyURLs"),
-		Pages:           &s.Pages,
-		Menus:           &s.Menus,
-		Params:          params,
-		Permalinks:      permalinks,
-		Data:            &s.Data,
-		RSSUri:          viper.GetString("RSSUri"),
-=======
 		BaseURL:               template.URL(helpers.SanitizeURLKeepTrailingSlash(viper.GetString("BaseURL"))),
 		Title:                 viper.GetString("Title"),
 		Author:                viper.GetStringMap("author"),
@@ -505,7 +465,7 @@ func (s *Site) initializeSiteInfo() {
 		Params:     params,
 		Permalinks: permalinks,
 		Data:       &s.Data,
->>>>>>> 7708d4556d6a829bbd2fbd487e64c069f17f4dbc
+		RSSUri:     viper.GetString("RSSUri"),
 	}
 }
 
@@ -1331,11 +1291,7 @@ func (s *Site) RenderHomePage() error {
 
 	if !viper.GetBool("DisableRSS") {
 		// XML Feed
-<<<<<<< HEAD
 		n.URL = s.permalinkStr(s.Info.RSSUri)
-=======
-		n.URL = s.permalinkStr(viper.GetString("RSSUri"))
->>>>>>> 7708d4556d6a829bbd2fbd487e64c069f17f4dbc
 		n.Title = ""
 		high := 50
 		if len(s.Pages) < high {
@@ -1349,11 +1305,7 @@ func (s *Site) RenderHomePage() error {
 
 		rssLayouts := []string{"rss.xml", "_default/rss.xml", "_internal/_default/rss.xml"}
 
-<<<<<<< HEAD
 		if err := s.renderAndWriteXML("homepage rss", s.Info.RSSUri, n, s.appendThemeTemplates(rssLayouts)...); err != nil {
-=======
-		if err := s.renderAndWriteXML("homepage rss", viper.GetString("RSSUri"), n, s.appendThemeTemplates(rssLayouts)...); err != nil {
->>>>>>> 7708d4556d6a829bbd2fbd487e64c069f17f4dbc
 			return err
 		}
 	}
